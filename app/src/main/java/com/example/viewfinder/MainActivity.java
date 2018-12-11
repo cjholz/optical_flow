@@ -38,6 +38,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.StrictMath.abs;
+
 // ----------------------------------------------------------------------
 
 public class MainActivity extends Activity {
@@ -188,12 +190,12 @@ public class MainActivity extends Activity {
         int[] mRGBData;
         int[][] mNewData;
         int[][] mLastData;
-        float[][] mEx;
-        float[][] mEy;
-        float[][] mEt;
-        float[][] mU;
-        float[][] mV;
-        float max;
+        double[][] mEx;
+        double[][] mEy;
+        double[][] mEt;
+        double[][] mU;
+        double[][] mV;
+        double max;
         int mImageWidth, mImageHeight;
         int[] mRedHistogram;
         int[] mGreenHistogram;
@@ -286,7 +288,7 @@ public class MainActivity extends Activity {
             int newImageWidth = canvasWidth - 200;
             int marginWidth = (canvasWidth - newImageWidth) / 2;
 
-            String UStr = "U    (velocity): " + String.format("%4f", (float) max);
+            String UStr = "U    (velocity): " + String.format("%4f", max);
             drawTextOnBlack(canvas, UStr, marginWidth + 10, mLeading, mPaintYellow);
 
             // Draw mean (truncate to integer) text on screen
@@ -314,15 +316,18 @@ public class MainActivity extends Activity {
         } // end onDraw method
 
         public void calculateBrightnessGradients() {
-            if (mLastData == null) {
+            if (mLastData == null || mNewData == null) {
                 return;
             }
             float epx = getResources().getDisplayMetrics().xdpi;
-            for (int i = 0; i < mLastData.length; i++) {
-                for (int j = 0; j < mLastData[i].length; j++) {
-                    mEx[i][j] = 1/epx*(1/4*(mLastData[i][j+1] + mLastData[i+1][j+1] + mNewData[i][j+1] + mNewData[i+1][j+1]) - 1/4*(mLastData[i][j] + mLastData[i+1][j] + mNewData[i][j] + mNewData[i+1][j]));
-                    mEy[i][j] = 1/epx*(1/4*(mLastData[i+1][j] + mLastData[i+1][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - 1/4*(mLastData[i][j] + mLastData[i][j+1] + mNewData[i][j] + mNewData[i][j+1]));
-                    mEt[i][j] = 1/epx*(1/4*(mNewData[i][j] + mNewData[i][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - 1/4*(mLastData[i][j] + mLastData[i][j+1] + mLastData[i+1][j] + mLastData[i+1][j+1]));
+            for (int i = 0; i < mLastData.length-1; i++) {
+                for (int j = 0; j < mLastData[i].length-1; j++) {
+                    mEx[i][j] = (1/epx)*(.25*(mLastData[i][j+1] + mLastData[i+1][j+1] + mNewData[i][j+1] + mNewData[i+1][j+1]) - .25*(mLastData[i][j] + mLastData[i+1][j] + mNewData[i][j] + mNewData[i+1][j]));
+                    mEy[i][j] = (1/epx)*(.25*(mLastData[i+1][j] + mLastData[i+1][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - .25*(mLastData[i][j] + mLastData[i][j+1] + mNewData[i][j] + mNewData[i][j+1]));
+                    mEt[i][j] = (1/epx)*(.25*(mNewData[i][j] + mNewData[i][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - .25*(mLastData[i][j] + mLastData[i][j+1] + mLastData[i+1][j] + mLastData[i+1][j+1]));
+                    if (mEt[i][j] != 0) {
+                        int l=9;
+                    }
                 }
             }
         }
@@ -332,11 +337,14 @@ public class MainActivity extends Activity {
                 return;
             }
             max = 0;
-            for (int i = 0; i < mLastData.length; i++) {
-                for (int j = 0; j < mLastData[i].length; j++) {
-                    float val = -1*mEt[i][j]/mEx[i][j];
+            for (int i = 0; i < mEt.length; i++) {
+                for (int j = 0; j < mEt[i].length; j++) {
+                    if (mEx[i][j] == 0) {
+                        continue;
+                    }
+                    double val = -1*mEt[i][j]/mEx[i][j];
                     mU[i][j] = -1*mEt[i][j]/mEx[i][j];
-                    if (val > max) {
+                    if (abs(val) > max) {
                         max = val;
                     }
                 }
@@ -381,14 +389,14 @@ public class MainActivity extends Activity {
         // does this already do this? How do I check the output??
         public void decodeYUV420SPGrayscale (int[][] rgb, byte[] yuv420sp, int width, int height) { // extract grey RGB format image
             final int frameSize = width * height;
-
+            mLastData = mNewData.clone();
             // This is much simpler since we can ignore the u and v components
             for (int i = 0; i < height; i++) {
                 for (int j=0; j < width; j++) {
                     int y = (0xFF & ((int) yuv420sp[(i*width)+j])) - 16;
                     if (y < 0) y = 0;
                     if (y > 0xFF) y = 0xFF;
-                    rgb[i][j] = 0xFF000000 | (y << 16) | (y << 8) | y;
+                    rgb[i][j] = y;
                 }
             }
         }
@@ -595,8 +603,13 @@ public class MainActivity extends Activity {
             mDrawOnTop.mBitmap = Bitmap.createBitmap(mDrawOnTop.mImageWidth,
                     mDrawOnTop.mImageHeight, Bitmap.Config.RGB_565);
             mDrawOnTop.mRGBData = new int[mDrawOnTop.mImageWidth * mDrawOnTop.mImageHeight];
-            mDrawOnTop.mLastData = mDrawOnTop.mNewData;
             mDrawOnTop.mNewData = new int[mDrawOnTop.mImageHeight][mDrawOnTop.mImageWidth];
+            mDrawOnTop.mLastData = new int[mDrawOnTop.mImageHeight][mDrawOnTop.mImageWidth];
+            mDrawOnTop.mEx = new double[mDrawOnTop.mImageHeight][mDrawOnTop.mImageWidth];
+            mDrawOnTop.mEy = new double[mDrawOnTop.mImageHeight][mDrawOnTop.mImageWidth];
+            mDrawOnTop.mEt = new double[mDrawOnTop.mImageHeight][mDrawOnTop.mImageWidth];
+            mDrawOnTop.mU = new double[mDrawOnTop.mImageHeight][mDrawOnTop.mImageWidth];
+
             if (DBG)
                 Log.i(TAG, "data length " + data.length); // should be width*height*3/2 for YUV format
             mDrawOnTop.mYUVData = new byte[data.length];
