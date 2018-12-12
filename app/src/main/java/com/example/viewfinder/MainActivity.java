@@ -322,9 +322,12 @@ public class MainActivity extends Activity {
             float epx = getResources().getDisplayMetrics().xdpi;
             for (int i = 0; i < mLastData.length-1; i++) {
                 for (int j = 0; j < mLastData[i].length-1; j++) {
-                    mEx[i][j] = (1/epx)*(.25*(mLastData[i][j+1] + mLastData[i+1][j+1] + mNewData[i][j+1] + mNewData[i+1][j+1]) - .25*(mLastData[i][j] + mLastData[i+1][j] + mNewData[i][j] + mNewData[i+1][j]));
-                    mEy[i][j] = (1/epx)*(.25*(mLastData[i+1][j] + mLastData[i+1][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - .25*(mLastData[i][j] + mLastData[i][j+1] + mNewData[i][j] + mNewData[i][j+1]));
-                    mEt[i][j] = (1/epx)*(.25*(mNewData[i][j] + mNewData[i][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - .25*(mLastData[i][j] + mLastData[i][j+1] + mLastData[i+1][j] + mLastData[i+1][j+1]));
+                    mEx[i][j] = (1/epx)*(.25*(mLastData[i][j+1] + mLastData[i+1][j+1] + mNewData[i][j+1] + mNewData[i+1][j+1]) - 
+					 .25*(mLastData[i][j] + mLastData[i+1][j] + mNewData[i][j] + mNewData[i+1][j]));
+                    mEy[i][j] = (1/epx)*(.25*(mLastData[i+1][j] + mLastData[i+1][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - 
+					 .25*(mLastData[i][j] + mLastData[i][j+1] + mNewData[i][j] + mNewData[i][j+1]));
+                    mEt[i][j] = (1/epx)*(.25*(mNewData[i][j] + mNewData[i][j+1] + mNewData[i+1][j] + mNewData[i+1][j+1]) - 
+					 .25*(mLastData[i][j] + mLastData[i][j+1] + mLastData[i+1][j] + mLastData[i+1][j+1]));
                     if (mEt[i][j] != 0) {
                         int l=9;
                     }
